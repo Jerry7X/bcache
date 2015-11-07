@@ -1858,7 +1858,7 @@ bool bch_btree_insert_check_key(struct btree *b, struct btree_op *op,
 	uint64_t btree_ptr = b->key.ptr[0];
 	unsigned long seq = b->seq;
 	BKEY_PADDED(k) tmp;
-
+    //没有upgrade_read的接口么
 	rw_unlock(false, b);
 	rw_lock(true, b, b->level);
 
@@ -2177,6 +2177,7 @@ static int submit_partial_cache_hit(struct btree *b, struct btree_op *op,
 	unsigned ptr;
 	struct bio *n;
 
+    //有可能部分不命中，flashcache切割了不用考虑这个问题
 	int ret = submit_partial_cache_miss(b, op, k);
 	if (ret || op->lookup_done)
 		return ret;
@@ -2218,6 +2219,7 @@ static int submit_partial_cache_hit(struct btree *b, struct btree_op *op,
 		n->bi_end_io	= bch_cache_read_endio;
 		n->bi_private	= &s->cl;
 
+		//从cache读
 		__bch_submit_bbio(n, b->c);
 	}
 

@@ -488,8 +488,8 @@ struct io {
 
 struct cached_dev {
 	struct list_head	list;
-	struct bcache_device	disk;
-	struct block_device	*bdev;
+	struct bcache_device	disk;//bcache´ÅÅÌ
+	struct block_device	*bdev;//back´ÅÅÌ
 
 	struct cache_sb		sb;
 	struct bio		sb_bio;
@@ -583,7 +583,7 @@ struct cache {
 	struct bio_vec		sb_bv[1];
 
 	struct kobject		kobj;
-	struct block_device	*bdev;
+	struct block_device	*bdev;//cache SSD
 
 	unsigned		watermark[WATERMARK_MAX];
 
@@ -977,6 +977,33 @@ static inline unsigned local_clock_us(void)
 		k->ptr[i] &= ~(~((uint64_t) ~0 << size) << offset);	\
 		k->ptr[i] |= v << offset;				\
 	}
+
+/*
+struct bkey {
+    struct {
+        uint64_t header_flag        :  1; // Set for the header record, clear for all others
+        uint64_t num_ptrs           :  3; // Number of pointers in this tuple
+        uint64_t HEADER_SIZE        :  2; //58-59
+        uint64_t KEY_CSUM           :  2; //56-57
+        uint64_t KEY_PINNED         :  1; //55
+        uint64_t                    : 18; // Reserved for future use
+        
+        uint64_t dirty_flag         :  1; // Set if the data is dirty
+        uint64_t length             : 16; // Number of sectors in this data item (up to 32MB)
+        uint64_t virtual_device     : 20; // Virtual device (currently corresponds to a real device)
+    } header;
+    struct {
+        uint64_t header_flag        :  1; // Clear for all except the header record
+        uint64_t sector             : 63; // Sector number in the virtual device (max 2^72 bytes per device)
+    } key;
+    struct {
+        uint64_t header_flag        :  1; // Clear for all except the header record
+        uint64_t physical_device    : 12; // Index to a real physical device
+        uint64_t offset             : 43; // Sector offset to the physical device (max 2^53 bytes per device)
+        uint64_t generation         :  8; // Generation number of the pointer
+    } ptr[];
+};
+*/
 
 KEY_FIELD(KEY_PTRS,	high, 60, 3)
 KEY_FIELD(HEADER_SIZE,	high, 58, 2)

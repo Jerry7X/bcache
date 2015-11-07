@@ -147,8 +147,11 @@ struct journal {
 	uint64_t		seq;
 	DECLARE_FIFO(atomic_t, pin);
 
-	BKEY_PADDED(key);
-
+    //指向当前写journal entry的地方
+    //在journal_reclaim中初始化
+	BKEY_PADDED(key); 
+    //这里放两个预分配好内存，主要就是为了减少在运行期做内存分配。
+    //有一点流水效果,journal entry的准备和写入SSD可视为两个阶段。
 	struct journal_write	w[2], *cur;
 };
 

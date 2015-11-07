@@ -229,7 +229,7 @@ static void write_sb(char *dev, unsigned block_size, unsigned bucket_size,
 
 		if (data_offset != BDEV_DATA_START_DEFAULT) {
 			sb.version = BCACHE_SB_VERSION_BDEV_WITH_OFFSET;
-			sb.data_offset = data_offset;
+			sb.data_offset = data_offset; //cache-devÓ³Éäµ½bdev»áÊ¹ÓÃ¸ÃÆ«ÒÆ
 		}
 
 		printf("UUID:			%s\n"
@@ -242,9 +242,9 @@ static void write_sb(char *dev, unsigned block_size, unsigned bucket_size,
 		       sb.block_size,
 		       data_offset);
 	} else {
-		sb.nbuckets		= getblocks(fd) / sb.bucket_size;
+		sb.nbuckets		= getblocks(fd) / sb.bucket_size;//Ä¬ÈÏ1024ÉÈÇø£¬×îºÃºÍSSDµÄ²Á³ý´óÐ¡Ò»ÖÂ
 		sb.nr_in_set		= 1; //µ±Ç°°æ±¾½öÖ§³ÖÒ»¸öcacheÉè±¸å
-		sb.first_bucket		= (23 / sb.bucket_size) + 1;
+		sb.first_bucket		= (23 / sb.bucket_size) + 1;//bucket´Ó1¿ªÊ¼
 
 		if (sb.nbuckets < 1 << 7) {
 			fprintf(stderr, "Not enough buckets: %ju, need %u\n",

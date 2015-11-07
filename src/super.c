@@ -793,6 +793,7 @@ static int bcache_device_init(struct bcache_device *d, unsigned block_size,
 	d->disk->fops		= &bcache_ops;
 	d->disk->private_data	= d;
 
+    //request_queue
 	blk_queue_make_request(q, NULL);
 	d->disk->queue			= q;
 	q->queuedata			= d;
@@ -1095,12 +1096,13 @@ static int cached_dev_init(struct cached_dev *dc, unsigned block_size)
 		list_add(&io->lru, &dc->io_lru);
 		hlist_add_head(&io->hash, dc->io_hash + RECENT_IO);
 	}
-
+    //初始化bcache盘request queue
 	ret = bcache_device_init(&dc->disk, block_size,
 			 dc->bdev->bd_part->nr_sects - dc->sb.data_offset);
 	if (ret)
 		return ret;
 
+    //设置bcache盘容量
 	set_capacity(dc->disk.disk,
 		     dc->bdev->bd_part->nr_sects - dc->sb.data_offset);
 
@@ -1108,6 +1110,7 @@ static int cached_dev_init(struct cached_dev *dc, unsigned block_size)
 		max(dc->disk.disk->queue->backing_dev_info.ra_pages,
 		    q->backing_dev_info.ra_pages);
 
+    //设置make request函数指针，这样一个块设备就注册好了
 	bch_cached_dev_request_init(dc);
 	bch_cached_dev_writeback_init(dc);
 	return 0;
@@ -1575,7 +1578,7 @@ static void run_cache_set(struct cache_set *c)
 		pr_notice("invalidating existing data");
 		/* Don't want invalidate_buckets() to queue a gc yet */
 		closure_lock(&c->gc, NULL);
-
+        //初始化journal
 		for_each_cache(ca, c, i) {
 			unsigned j;
 
@@ -2036,7 +2039,10 @@ static int __init bcache_init(void)
 	register_reboot_notifier(&reboot);
 	closure_debug_init();
 
-	bcache_major = register_blkdev(0, "bcache");
+    //bcache是块层的cache实现方案。flashcache是dm层的实现方案。
+    //flashcache是通过device mapper机制来产生logic device
+    //
+	bcache_major = register_blkdev(0, "bcache");//注册设备
 	if (bcache_major < 0)
 		return bcache_major;
 

@@ -571,7 +571,8 @@ static void journal_write_done(struct closure *cl)
 }
 
 static void journal_write_unlocked(struct closure *cl)
-	__releases(c->journal.lock)
+	__releases(c->journal.lock)//代码静态检测，执行该函数前lock必须为1,执行完之后必须为0
+	//也就是释放锁，linux内核代码检测
 {
 	struct cache_set *c = container_of(cl, struct cache_set, journal.io.cl);
 	struct cache *ca;
@@ -613,9 +614,11 @@ static void journal_write_unlocked(struct closure *cl)
 
 	w->data->magic		= jset_magic(c);
 	w->data->version	= BCACHE_JSET_VERSION;
-	w->data->last_seq	= last_seq(&c->journal);
+	w->data->last_seq	= last_seq(&c->journal);//根据FIFO的长度和当前的seq计算出来
 	w->data->csum		= csum_set(w->data);
 
+    //用bkey标记journal entry的位置
+    //理解bkey的结构，KEY_PTRS一般都是为1，目前就支持一个cache设备
 	for (i = 0; i < KEY_PTRS(k); i++) {
 		ca = PTR_CACHE(c, k, i);
 		bio = &ca->journal.bio;
@@ -635,13 +638,16 @@ static void journal_write_unlocked(struct closure *cl)
 		trace_bcache_journal_write(bio);
 		bio_list_add(&list, bio);
 
+		//将key挪到下一次要写journal entry的地方
 		SET_PTR_OFFSET(k, i, PTR_OFFSET(k, i) + sectors);
 
 		ca->journal.seq[ca->journal.cur_idx] = w->data->seq;
 	}
 
 	atomic_dec_bug(&fifo_back(&c->journal.pin));
-	bch_journal_next(&c->journal);
+	bch_journal_next(&c->journal);//上一次的一定完成了吗?
+	//一定写完了，不然得不到closure，搞得真么复杂其实就是为了增加一点流水能力。
+	//填充journal entry和sumbit io可以并行
 	journal_reclaim(c);
 
 	spin_unlock(&c->journal.lock);
@@ -665,6 +671,7 @@ static void __journal_try_write(struct cache_set *c, bool noflush)
 {
 	struct closure *cl = &c->journal.io.cl;
 
+    //竞争出现在closure上,这里直接return了,所以journal_write_done要去检查
 	if (!closure_trylock(cl, &c->cl))
 		spin_unlock(&c->journal.lock);
 	else if (noflush && journal_full(&c->journal)) {
@@ -763,6 +770,7 @@ void bch_journal(struct closure *cl)
 	if (op->flush_journal) {
 		closure_flush(&c->journal.io);
 		//多个op写journal需要顺序化
+		//cl parent is cacheset's cl
 		closure_wait(&w->wait, cl->parent);
 	}
 

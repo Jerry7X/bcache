@@ -723,6 +723,21 @@ static struct search *search_alloc(struct bio *bio, struct bcache_device *d)
 	s->task			= current;
 	s->orig_bio		= bio;
 	s->write		= (bio->bi_rw & REQ_WRITE) != 0;
+//  The REQ_FLUSH flag can be OR ed into the r/w flags of a bio submitted from
+//  the filesystem and will make sure the volatile cache of the storage device
+//	has been flushed before the actual I/O operation is started.  This explicitly
+//	guarantees that previously completed write requests are on non-volatile
+//	storage before the flagged bio starts. In addition the REQ_FLUSH flag can be
+//	set on an otherwise empty bio structure, which causes only an explicit cache
+//	flush without any dependent I/O.  It is recommend to use
+//	the blkdev_issue_flush() helper for a pure cache flush.
+
+//	Forced Unit Access
+
+//	The REQ_FUA flag can be OR ed into the r/w flags of a bio submitted from the
+//	filesystem and will make sure that I/O completion for this request is only
+//	signaled after the data has been committed to non-volatile storage.
+
 	s->op.flush_journal	= (bio->bi_rw & (REQ_FLUSH|REQ_FUA)) != 0;
 	s->op.skip		= (bio->bi_rw & REQ_DISCARD) != 0;
 	s->recoverable		= 1;
@@ -866,6 +881,7 @@ static void request_read_done_bh(struct closure *cl)
 
 	if (s->error)
 		continue_at_nobarrier(cl, request_read_error, bcache_wq);
+	//有未命中，需要将数据拷贝到cache dev
 	else if (s->op.cache_bio || verify(dc, &s->bio.bio))
 		continue_at_nobarrier(cl, request_read_done, bcache_wq);
 	else
