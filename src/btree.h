@@ -127,6 +127,7 @@ struct btree {
 	struct cache_set	*c;
 
 	unsigned long		flags;
+	//µ¥Î»ÊÇblock
 	uint16_t		written;	/* would be nice to kill */
 	uint8_t			level;
 	uint8_t			nsets;

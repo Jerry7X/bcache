@@ -346,7 +346,7 @@ struct bset {
 	uint64_t		magic;
 	uint64_t		seq;
 	uint32_t		version;
-	uint32_t		keys;
+	uint32_t		keys; //key数量
 
 	union {
 		struct bkey	start[0];
@@ -358,6 +358,7 @@ struct bset {
  * On disk format for priorities and gens - see super.c near prio_write() for
  * more.
  */
+//普通的bucket应该是没有这个头部的，只有prio的bucket有
 struct prio_set {
 	uint64_t		csum;
 	uint64_t		magic;
@@ -616,7 +617,10 @@ struct cache {
 	 * need to discard them before they can be moved to the free list.
 	 */
 	DECLARE_FIFO(long, free);
-	DECLARE_FIFO(long, free_inc);
+	free;
+	free_inc;
+	unused;
+	DECLARE_FIFO(long, free_inc);//maybe ditry
 	DECLARE_FIFO(long, unused);
 
 	size_t			fifo_last_bucket;
@@ -952,6 +956,8 @@ static inline unsigned local_clock_us(void)
 #define prios_per_bucket(c)				\
 	((bucket_bytes(c) - sizeof(struct prio_set)) /	\
 	 sizeof(struct bucket_disk))
+	//向上取整 #define DIV_ROUND_UP(n,d) (((n) + (d) - 1) / (d))
+	//这个计算得出的结果就是存放bucket priority所需的buckets
 #define prio_buckets(c)					\
 	DIV_ROUND_UP((size_t) (c)->sb.nbuckets, prios_per_bucket(c))
 

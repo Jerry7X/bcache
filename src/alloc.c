@@ -274,6 +274,7 @@ static void invalidate_buckets_lru(struct cache *ca)
 		heap_sift(&ca->heap, i, bucket_min_cmp);
 
 	while (!fifo_full(&ca->free_inc)) {
+		//加到free_inc列表，怎么个比较法
 		if (!heap_pop(&ca->heap, b, bucket_min_cmp)) {
 			/*
 			 * We don't want to be calling invalidate_buckets()

@@ -1773,6 +1773,8 @@ static int cache_alloc(struct cache_sb *sb, struct cache *ca)
 	free = roundup_pow_of_two(ca->sb.nbuckets) >> 9;
 	free = max_t(size_t, free, (prio_buckets(ca) + 8) * 2);
 
+    //free数量只是总数的一部分
+    //从这段看，似乎只有部分bucket投入使用了
 	if (!init_fifo(&ca->free,	free, GFP_KERNEL) ||
 	    !init_fifo(&ca->free_inc,	free << 2, GFP_KERNEL) ||
 	    !init_fifo(&ca->unused,	free << 2, GFP_KERNEL) ||
@@ -2036,6 +2038,7 @@ static int __init bcache_init(void)
 
 	mutex_init(&bch_register_lock);
 	init_waitqueue_head(&unregister_wait);
+	//注册reboot事件的处理
 	register_reboot_notifier(&reboot);
 	closure_debug_init();
 

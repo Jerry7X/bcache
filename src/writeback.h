@@ -21,9 +21,10 @@ static inline bool bcache_dev_stripe_dirty(struct bcache_device *d,
 	uint64_t stripe = offset >> d->stripe_size_bits;
 
 	while (1) {
+		//dirty部分WB
 		if (atomic_read(d->stripe_sectors_dirty + stripe))
 			return true;
-
+        //小于stripe部分可以不用WB
 		if (nr_sectors <= 1 << d->stripe_size_bits)
 			return false;
 

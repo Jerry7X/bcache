@@ -742,6 +742,7 @@ static struct search *search_alloc(struct bio *bio, struct bcache_device *d)
 	s->op.skip		= (bio->bi_rw & REQ_DISCARD) != 0;
 	s->recoverable		= 1;
 	s->start_time		= jiffies;
+	//这里拷贝了bio
 	do_bio_hook(s);
 
 	if (bio->bi_size != bio_segments(bio) * PAGE_SIZE) {
@@ -986,12 +987,13 @@ static void request_write(struct cached_dev *dc, struct search *s)
 	struct bkey start, end;
 	start = KEY(dc->disk.id, bio->bi_sector, 0);
 	end = KEY(dc->disk.id, bio_end_sector(bio), 0);
-
+    //与gc keys是否overlay
 	bch_keybuf_check_overlapping(&s->op.c->moving_gc_keys, &start, &end);
 
 	check_should_skip(dc, s);
 	down_read_non_owner(&dc->writeback_lock);
 
+    //与wb keys是否overlay
 	if (bch_keybuf_check_overlapping(&dc->writeback_keys, &start, &end)) {
 		s->op.skip	= false;
 		s->writeback	= true;

@@ -177,9 +177,11 @@ static void refill_dirty(struct closure *cl)
 		searched_from_start = true;
 	}
 
+	//这个属性用于raid等条带化的back device。
+	//尽量避免其上跨条带的操作
 	if (dc->partial_stripes_expensive) {
 		uint64_t i;
-
+        //处理dirty sectors
 		for (i = 0; i < dc->disk.nr_stripes; i++)
 			if (atomic_read(dc->disk.stripe_sectors_dirty + i) ==
 			    1 << dc->disk.stripe_size_bits)
@@ -244,6 +246,7 @@ void bch_writeback_add(struct cached_dev *dc)
 	}
 }
 
+//通过这个函数标记stripe dirty，然后write back
 void bcache_dev_sectors_dirty_add(struct cache_set *c, unsigned inode,
 				  uint64_t offset, int nr_sectors)
 {

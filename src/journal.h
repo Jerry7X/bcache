@@ -100,11 +100,11 @@ struct jset {
 	uint64_t		last_seq;
 
 	BKEY_PADDED(uuid_bucket);
-	BKEY_PADDED(btree_root);
+	BKEY_PADDED(btree_root); //每个journal都保存uuid和btree_root
 	uint16_t		btree_level;
 	uint16_t		pad[3];
 
-	uint64_t		prio_bucket[MAX_CACHES_PER_SET];
+	uint64_t		prio_bucket[MAX_CACHES_PER_SET];//指向cache的prio_buckets[0]
 
 	union {
 		struct bkey	start[0];
@@ -172,7 +172,7 @@ struct journal_device {
 	/* Last journal bucket that still contains an open journal entry */
 	unsigned		last_idx;
 
-	/* Next journal bucket to be discarded */
+	/* Next journal bucket to be discarded 回收*/
 	unsigned		discard_idx;
 
 #define DISCARD_READY		0

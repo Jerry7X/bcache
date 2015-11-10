@@ -185,6 +185,7 @@ static void bch_btree_node_read_done(struct btree *b)
 	}
 
 	err = "corrupted btree";
+	//这后面的是啥呢? NULL?
 	for (i = write_block(b);
 	     index(i, b) < btree_blocks(b);
 	     i = ((void *) i) + block_bytes(b->c))
@@ -755,7 +756,7 @@ static struct hlist_head *mca_hash(struct cache_set *c, struct bkey *k)
 static struct btree *mca_find(struct cache_set *c, struct bkey *k)
 {
 	struct btree *b;
-
+    //Read-copy update (RCU)
 	rcu_read_lock();
 	hlist_for_each_entry_rcu(b, mca_hash(c, k), hash)
 		if (PTR_HASH(c, &b->key) == PTR_HASH(c, k))
@@ -2018,7 +2019,7 @@ static int bch_btree_insert_recurse(struct btree *b, struct btree_op *op,
 
 		if (bkey_cmp(insert, k) > 0) {
 			unsigned i;
-
+            //没替换? 找不到相等的?
 			if (op->type == BTREE_REPLACE) {
 				__bkey_put(b->c, insert);
 				op->keys.top = op->keys.bottom;
@@ -2055,6 +2056,7 @@ static int bch_btree_insert_recurse(struct btree *b, struct btree_op *op,
 		BUG_ON(write_block(b) != b->sets[b->nsets].data);
 
 		if (bch_btree_insert_keys(b, op)) {
+			//level 0为leaf
 			if (!b->level)
 				bch_btree_leaf_dirty(b, op);
 			else

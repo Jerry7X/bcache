@@ -426,7 +426,8 @@ static struct bkey *cacheline_to_bkey(struct bset_tree *t, unsigned cacheline,
 {
 	return ((void *) t->data) + cacheline * BSET_CACHELINE + offset * 8;
 }
-
+//将bset的key映射到不同的cache line(根据其在数组中的位置)
+//奇怪的是为什么用两个指针相减呢?
 static unsigned bkey_to_cacheline(struct bset_tree *t, struct bkey *k)
 {
 	return ((void *) k - (void *) t->data) / BSET_CACHELINE;
@@ -538,7 +539,7 @@ static void bset_build_unwritten_tree(struct btree *b)
 		t->size = 1;
 	}
 }
-
+//bset内部形成一个带cacheline的btree
 static void bset_build_written_tree(struct btree *b)
 {
 	struct bset_tree *t = b->sets + b->nsets;
@@ -547,6 +548,7 @@ static void bset_build_written_tree(struct btree *b)
 
 	bset_alloc_tree(b, t);
 
+    //cacheline和search tree
 	t->size = min_t(unsigned,
 			bkey_to_cacheline(t, end(t->data)),
 			b->sets->tree + bset_tree_space(b) - t->tree);
@@ -679,7 +681,8 @@ void bch_bset_fix_lookup_table(struct btree *b, struct bkey *k)
 void bch_bset_init_next(struct btree *b)
 {
 	struct bset *i = write_block(b);
-
+    //由此可见bset的边界是不确定的。
+    //虽然说btree里面有最多4个bset，但实际个数和大小是未知的
 	if (i != b->sets[0].data) {
 		b->sets[++b->nsets].data = i;
 		i->seq = b->sets[0].data->seq;
@@ -802,7 +805,8 @@ struct bkey *__bch_bset_search(struct btree *b, struct bset_tree *t,
 	 *  * Or we use the auxiliary search tree we constructed earlier -
 	 *    bset_search_tree()
 	 */
-
+    //提供给编译器的信息，用于代码优化，暗示了代码执行的几率
+    //也就是说，使用likely(),执行if后面的语句的机会更大，使用unlikely(),执行else后面的语句机会更大一些。
 	if (unlikely(!t->size)) {
 		i.l = t->data->start;
 		i.r = end(t->data);
@@ -874,6 +878,7 @@ struct bkey *__bch_btree_iter_init(struct btree *b, struct btree_iter *iter,
 	iter->used = 0;
 
 	for (; start <= &b->sets[b->nsets]; start++) {
+		//在btree的set tree上搜索
 		ret = bch_bset_search(b, start, search);
 		bch_btree_iter_push(iter, ret, end(start->data));
 	}
@@ -998,7 +1003,7 @@ static void __btree_sort(struct btree *b, struct btree_iter *iter,
 	}
 
 	start_time = local_clock();
-
+    //合并成一个bset，并且是有序的
 	btree_mergesort(b, out, iter, fixup, remove_stale);
 	b->nsets = start;
 

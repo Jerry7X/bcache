@@ -52,7 +52,7 @@
  * in a btree node in sorted order, starting from either keys after a specific
  * point (if you pass it a search key) or the start of the btree node.
  *
- * AUXILIARY SEARCH TREES:
+ * AUXILIARY(auxiliary 辅助的) SEARCH TREES:
  *
  * Since keys are variable length, we can't use a binary search on a bset - we
  * wouldn't be able to find the start of the next key. But binary searches are
@@ -184,7 +184,7 @@ struct bset_tree {
 	/* The actual btree node, with pointers to each sorted set */
 	struct bset	*data;
 };
-
+//对比key指向的地址(device + offset)
 static __always_inline int64_t bkey_cmp(const struct bkey *l,
 					const struct bkey *r)
 {
