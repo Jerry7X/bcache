@@ -203,7 +203,7 @@ struct bucket {
  * I'd use bitfields for these, but I don't trust the compiler not to screw me
  * as multiple threads touch struct bucket without locking
  */
-
+//dirty和meta不回收
 BITMASK(GC_MARK,	 struct bucket, gc_mark, 0, 2);
 #define GC_MARK_RECLAIMABLE	0
 #define GC_MARK_DIRTY		1
@@ -626,7 +626,7 @@ struct cache {
 	size_t			fifo_last_bucket;
 
 	/* Allocation stuff: */
-	struct bucket		*buckets;
+	struct bucket		*buckets;//bucket的内存结构，free/free_inc、unused等用的就是该数组下标
 
 	DECLARE_HEAP(struct bucket *, heap);
 

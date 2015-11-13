@@ -416,7 +416,7 @@ static int bch_allocator_thread(void *arg)
 		 * we can invalidate. First, invalidate them in memory and add
 		 * them to the free_inc list:
 		 */
-
+        //同步
 		allocator_wait(ca, ca->set->gc_mark_valid &&
 			       (ca->need_save_prio > 64 ||
 				!ca->invalidate_needs_gc));
@@ -519,7 +519,7 @@ int __bch_bucket_alloc_set(struct cache_set *c, unsigned watermark,
 
 		if (b == -1)
 			goto err;
-
+        //bkey的generation来自于bucket的gen
 		k->ptr[i] = PTR(ca->buckets[b].gen,
 				bucket_to_sector(c, b),
 				ca->sb.nr_this_dev);//也就是device的index

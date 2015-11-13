@@ -98,7 +98,7 @@ struct jset {
 	uint32_t		keys;
 
 	uint64_t		last_seq;
-
+    uuid_bucket;
 	BKEY_PADDED(uuid_bucket);
 	BKEY_PADDED(btree_root); //每个journal都保存uuid和btree_root
 	uint16_t		btree_level;

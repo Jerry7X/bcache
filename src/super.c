@@ -561,6 +561,7 @@ void bch_prio_write(struct cache *ca)
 			d->gen = b->gen;
 		}
 
+        //prio_bucket[0]存放的就是第一个prio bucket
 		p->next_bucket	= ca->prio_buckets[i + 1];
 		p->magic	= pset_magic(ca);
 		p->csum		= bch_crc64(&p->magic, bucket_bytes(ca) - 8);
@@ -619,7 +620,7 @@ static void prio_read(struct cache *ca, uint64_t bucket)
 			bucket = p->next_bucket;
 			d = p->data;
 		}
-
+        //从持久化的属性中读取bucketproi和跟信息
 		b->prio = le16_to_cpu(d->prio);
 		b->gen = b->disk_gen = b->last_gc = b->gc_gen = d->gen;
 	}
@@ -793,7 +794,7 @@ static int bcache_device_init(struct bcache_device *d, unsigned block_size,
 	d->disk->fops		= &bcache_ops;
 	d->disk->private_data	= d;
 
-    //request_queue
+    //这里并未定义make_request处理函数，后面有定义
 	blk_queue_make_request(q, NULL);
 	d->disk->queue			= q;
 	q->queuedata			= d;
@@ -1081,6 +1082,7 @@ static int cached_dev_init(struct cached_dev *dc, unsigned block_size)
 	__module_get(THIS_MODULE);
 	INIT_LIST_HEAD(&dc->list);
 	closure_init(&dc->disk.cl, NULL);
+	//出现异常时注销设备
 	set_closure_fn(&dc->disk.cl, cached_dev_flush, system_wq);
 	kobject_init(&dc->disk.kobj, &bch_cached_dev_ktype);
 	INIT_WORK(&dc->detach, cached_dev_detach_finish);
@@ -1257,7 +1259,7 @@ int bch_flash_dev_create(struct cache_set *c, uint64_t size)
 }
 
 /* Cache set */
-
+//IO错误时注销设备
 __printf(2, 3)
 bool bch_cache_set_error(struct cache_set *c, const char *fmt, ...)
 {
@@ -1409,6 +1411,7 @@ struct cache_set *bch_cache_set_alloc(struct cache_sb *sb)
 	set_closure_fn(&c->cl, cache_set_free, system_wq);
 
 	closure_init(&c->caching, &c->cl);
+	//出现IO错误时，会注销掉所有bcache device
 	set_closure_fn(&c->caching, __cache_set_unregister, system_wq);
 
 	/* Maybe create continue_at_noreturn() and use it here? */
@@ -1513,6 +1516,8 @@ static void run_cache_set(struct cache_set *c)
 		j = &list_entry(journal.prev, struct journal_replay, list)->j;
 
 		err = "IO error reading priorities";
+		//初始化加载bucket的priority
+		//priority bucket之间有单向链表关系，因而可以找到所有的prio bucket
 		for_each_cache(ca, c, i)
 			prio_read(ca, j->prio_bucket[ca->sb.nr_this_dev]);
 
@@ -1588,7 +1593,7 @@ static void run_cache_set(struct cache_set *c)
 			for (j = 0; j < ca->sb.keys; j++)
 				ca->sb.d[j] = ca->sb.first_bucket + j;
 		}
-
+        //默认初始化为0，所以这里gc finish之后，所有bucket都可以加入unused
 		bch_btree_gc_finish(c);
 
 		err = "error starting allocator thread";
@@ -2043,7 +2048,7 @@ static int __init bcache_init(void)
 	closure_debug_init();
 
     //bcache是块层的cache实现方案。flashcache是dm层的实现方案。
-    //flashcache是通过device mapper机制来产生logic device
+    //flashcache是通过device mapper机制来产生dm device
     //
 	bcache_major = register_blkdev(0, "bcache");//注册设备
 	if (bcache_major < 0)

@@ -392,6 +392,7 @@ static bool bch_alloc_sectors(struct bkey *k, unsigned sectors,
 
 	SET_KEY_OFFSET(k, KEY_OFFSET(k) + sectors);
 	SET_KEY_SIZE(k, sectors);
+	//key的ptr属性来自与open_bucket的key(也就是bucket gen)
 	SET_KEY_PTRS(k, KEY_PTRS(&b->key));
 
 	/*
@@ -998,7 +999,7 @@ static void request_write(struct cached_dev *dc, struct search *s)
 		s->op.skip	= false;
 		s->writeback	= true;
 	}
-
+    //最终是否overy还得看btree
 	if (bio->bi_rw & REQ_DISCARD)
 		goto skip;
 
@@ -1017,7 +1018,7 @@ static void request_write(struct cached_dev *dc, struct search *s)
 	if (!s->writeback) {
 		s->op.cache_bio = bio_clone_bioset(bio, GFP_NOIO,
 						   dc->disk.bio_split);
-
+        //直接提交到后端的磁盘
 		closure_bio_submit(bio, cl, s->d);
 	} else {
 		bch_writeback_add(dc);
@@ -1270,7 +1271,7 @@ static int cached_dev_congested(void *data, int bits)
 void bch_cached_dev_request_init(struct cached_dev *dc)
 {
 	struct gendisk *g = dc->disk.disk;
-
+    //不需要request_fn
 	g->queue->make_request_fn		= cached_dev_make_request;
 	g->queue->backing_dev_info.congested_fn = cached_dev_congested;
 	dc->disk.cache_miss			= cached_dev_cache_miss;

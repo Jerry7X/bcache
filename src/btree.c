@@ -1078,11 +1078,14 @@ uint8_t __bch_btree_mark_key(struct cache_set *c, int level, struct bkey *k)
 		if (!ptr_available(c, k, i))
 			continue;
 
+		//终于到了具体的数据bucket
 		g = PTR_BUCKET(c, k, i);
 
+		//如果bucket的gc比key大,那么设置gc为key的gen
 		if (gen_after(g->gc_gen, PTR_GEN(k, i)))
 			g->gc_gen = PTR_GEN(k, i);
 
+		//比较bucket的gen比key的gen，如果比key大(invalid key)，更新stale
 		if (ptr_stale(c, k, i)) {
 			stale = max(stale, ptr_stale(c, k, i));
 			continue;
@@ -1092,13 +1095,14 @@ uint8_t __bch_btree_mark_key(struct cache_set *c, int level, struct bkey *k)
 			     (GC_MARK(g) == GC_MARK_METADATA) != (level != 0),
 			     c, "inconsistent ptrs: mark = %llu, level = %i",
 			     GC_MARK(g), level);
-
+        //meta和dirty不回收
 		if (level)
 			SET_GC_MARK(g, GC_MARK_METADATA);
 		else if (KEY_DIRTY(k))
 			SET_GC_MARK(g, GC_MARK_DIRTY);
 
 		/* guard against overflow */
+		//如果这个key是正常的,不stale,那么就加入used空间统计之列
 		SET_GC_SECTORS_USED(g, min_t(unsigned,
 					     GC_SECTORS_USED(g) + KEY_SIZE(k),
 					     (1 << 14) - 1));
@@ -1111,6 +1115,7 @@ uint8_t __bch_btree_mark_key(struct cache_set *c, int level, struct bkey *k)
 
 #define btree_mark_key(b, k)	__bch_btree_mark_key(b->c, b->level, k)
 
+//判断一个节点的新旧程度
 static int btree_gc_mark_node(struct btree *b, unsigned *keys,
 			      struct gc_stat *gc)
 {
@@ -1315,12 +1320,13 @@ static int btree_gc_recurse(struct btree *b, struct btree_op *op,
 		}
 
 		r->keys	= 0;
+		//这个函数完成实际工作
 		stale = btree_gc_mark_node(r->b, &r->keys, gc);
-
+        //计算stale就是用于replacement
 		if (!b->written &&
 		    (r->b->level || stale > 10 ||
 		     b->c->gc_always_rewrite))
-			r->b = btree_gc_alloc(r->b, r->k, op);
+			r->b = btree_gc_alloc(r->b, r->k, op);//replacement 替换
 
 		if (r->b->level)
 			ret = btree_gc_recurse(r->b, op, writes, gc);
@@ -1371,6 +1377,7 @@ static int bch_btree_gc_root(struct btree *b, struct btree_op *op,
 	unsigned keys = 0;
 	int ret = 0, stale = btree_gc_mark_node(b, &keys, gc);
 
+    //直接替换内存中的节点，与读写是冲突的
 	if (b->level || stale > 10)
 		n = btree_node_alloc_replacement(b, NULL);
 
@@ -1412,6 +1419,7 @@ static void btree_gc_start(struct cache_set *c)
 		for_each_bucket(b, ca) {
 			b->gc_gen = b->gen;
 			if (!atomic_read(&b->pin)) {
+				//BITMASK 宏定义
 				SET_GC_MARK(b, GC_MARK_RECLAIMABLE);
 				SET_GC_SECTORS_USED(b, 0);
 			}
@@ -1487,7 +1495,7 @@ static void bch_btree_gc(struct closure *cl)
 	closure_init_stack(&writes);
 	bch_btree_op_init_stack(&op);
 	op.lock = SHRT_MAX;
-
+    //做一些准备工作，设置标记
 	btree_gc_start(c);
 
 	atomic_inc(&c->prio_blocked);
@@ -2311,6 +2319,7 @@ static int bch_btree_refill_keybuf(struct btree *b, struct btree_op *op,
 				w->private = NULL;
 				bkey_copy(&w->key, k);
 
+				//插入到key buf中
 				if (RB_INSERT(&buf->keys, w, node, keybuf_cmp))
 					array_free(&buf->freelist, w);
 

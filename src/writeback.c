@@ -172,6 +172,7 @@ static void refill_dirty(struct closure *cl)
 		closure_return(cl);
 	}
 
+	//从头开始扫描
 	if (bkey_cmp(&buf->last_scanned, &end) >= 0) {
 		buf->last_scanned = KEY(dc->disk.id, 0, 0);
 		searched_from_start = true;
@@ -387,7 +388,7 @@ static void read_dirty(struct closure *cl)
 	 * XXX: if we error, background writeback just spins. Should use some
 	 * mempools.
 	 */
-
+    //按照key的顺序来write back
 	while (1) {
 		w = bch_keybuf_next(&dc->writeback_keys);
 		if (!w)

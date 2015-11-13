@@ -132,7 +132,7 @@ bool bch_ptr_bad(struct btree *b, const struct bkey *k)
 
 			btree_bug_on(stale && KEY_DIRTY(k) && KEY_SIZE(k),
 				     b, "stale dirty pointer");
-
+            //staleµÄkey is bad
 			if (stale)
 				return true;
 
