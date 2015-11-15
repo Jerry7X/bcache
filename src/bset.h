@@ -22,6 +22,7 @@
  * them on disk, just unnecessary work - so we filter them out when resorting
  * instead.
  *
+ // bucket gen wrap around的情况
  * We can't filter out stale keys when we're resorting, because garbage
  * collection needs to find them to ensure bucket gens don't wrap around -
  * unless we're rewriting the btree node those stale keys still exist on disk.
@@ -36,6 +37,7 @@
  * along with a header. A btree node is made up of a number of these, written at
  * different times.
  *
+ //在磁盘上还能超过4个?
  * There could be many of them on disk, but we never allow there to be more than
  * 4 in memory - we lazily resort as needed.
  *
@@ -321,7 +323,7 @@ struct bkey *__bch_btree_iter_init(struct btree *, struct btree_iter *,
 				   struct bkey *, struct bset_tree *);
 
 /* 32 bits total: */
-#define BKEY_MID_BITS		3
+#define BKEY_MID_BITS 3
 #define BKEY_EXPONENT_BITS	7
 #define BKEY_MANTISSA_BITS	22
 #define BKEY_MANTISSA_MASK	((1 << BKEY_MANTISSA_BITS) - 1)

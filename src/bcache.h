@@ -836,6 +836,7 @@ struct cache_set {
 
 	unsigned		nr_uuids;
 	struct uuid_entry	*uuids;
+	uuid_bucket;
 	BKEY_PADDED(uuid_bucket);
 	struct closure_with_waitlist uuid_write;
 

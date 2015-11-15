@@ -720,6 +720,7 @@ static struct search *search_alloc(struct bio *bio, struct bcache_device *d)
 	s->op.inode		= d->id;
 	s->op.c			= d->c;
 	s->d			= d;
+	//Ä¬ÈÏ¶¼¼Ó¶ÁËø
 	s->op.lock		= -1;
 	s->task			= current;
 	s->orig_bio		= bio;

@@ -469,6 +469,7 @@ static void journal_reclaim(struct cache_set *c)
 	unsigned iter, n = 0;
 	atomic_t p;
 
+    //这里对应的journal一定写盘了,但是对应的btree修改不一定持久化，btree node可能是异步写回的
 	while (!atomic_read(&fifo_front(&c->journal.pin)))
 		fifo_pop(&c->journal.pin, p);
 
@@ -646,8 +647,7 @@ static void journal_write_unlocked(struct closure *cl)
 
 	atomic_dec_bug(&fifo_back(&c->journal.pin));
 	bch_journal_next(&c->journal);//上一次的一定完成了吗?
-	//一定写完了，不然得不到closure，搞得真么复杂其实就是为了增加一点流水能力。
-	//填充journal entry和sumbit io可以并行
+	//一定写完了，不然得不到closure
 	journal_reclaim(c);
 
 	spin_unlock(&c->journal.lock);
@@ -764,6 +764,8 @@ void bch_journal(struct closure *cl)
 	memcpy(end(w->data), op->keys.list, n * sizeof(uint64_t));
 	w->data->keys += n;
 
+    //init初始化为1，这里inc。完成journal写盘dec
+    //在完成btree磁盘的插入之后就释放了该pin
 	op->journal = &fifo_back(&c->journal.pin);
 	atomic_inc(op->journal);
 

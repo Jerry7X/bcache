@@ -148,6 +148,7 @@ static void bch_btree_node_read_done(struct btree *b)
 	if (!i->seq)
 		goto err;
 
+	//多个bset是磁盘是完全连续的
 	for (;
 	     b->written < btree_blocks(b) && i->seq == b->sets[0].data->seq;
 	     i = write_block(b)) {
@@ -348,6 +349,7 @@ static void do_btree_node_write(struct btree *b)
 	 * just make all btree node writes FUA to keep things sane.
 	 */
     //FUA什么概念
+    //最后一个key之后来计算bset的数量，所以磁盘中的bset数量与内存中的没有关系
 	bkey_copy(&k.key, &b->key);
 	SET_PTR_OFFSET(&k.key, 0, PTR_OFFSET(&k.key, 0) + bset_offset(b, i));
 
@@ -400,8 +402,10 @@ void bch_btree_node_write(struct btree *b, struct closure *parent)
 	atomic_long_add(set_blocks(i, b->c) * b->c->sb.block_size,
 			&PTR_CACHE(b->c, &b->key, 0)->btree_sectors_written);
 
+    //合并
 	bch_btree_sort_lazy(b);
 
+    //换一个新的set
 	if (b->written < btree_blocks(b))
 		bch_bset_init_next(b);
 }
@@ -433,6 +437,8 @@ static void bch_btree_leaf_dirty(struct btree *b, struct btree_op *op)
 	if (op && op->journal) {
 		if (w->journal &&
 		    journal_pin_cmp(b->c, w, op)) {
+		    //这还没写回，就回收?
+		    //w->journal到这里，说明这里已经刷到盘了
 			atomic_dec_bug(w->journal);
 			w->journal = NULL;
 		}
@@ -442,7 +448,7 @@ static void bch_btree_leaf_dirty(struct btree *b, struct btree_op *op)
 			atomic_inc(w->journal);
 		}
 	}
-
+    //并没有立即写回
 	/* Force write if set is too big */
 	if (set_bytes(i) > PAGE_SIZE - 48 &&
 	    !current->bio_list)
@@ -1633,6 +1639,8 @@ static bool fix_overlapping_extents(struct btree *b,
 				    struct btree_iter *iter,
 				    struct btree_op *op)
 {
+    //即便在内存中修改了，如果是非DIRTY的，也不会刷回磁盘。
+    //因而磁盘上会有overlap的情况
 	void subtract_dirty(struct bkey *k, uint64_t offset, int sectors)
 	{
 		if (KEY_DIRTY(k))
@@ -1648,10 +1656,11 @@ static bool fix_overlapping_extents(struct btree *b,
 		if (!k ||
 		    bkey_cmp(&START_KEY(k), insert) >= 0)
 			break;
-
+        //insert的start比key还大
 		if (bkey_cmp(k, &START_KEY(insert)) <= 0)
 			continue;
 
+        //k的start比insert小，k比insert的start大。存在overlap的情况
 		old_offset = KEY_START(k);
 		old_size = KEY_SIZE(k);
 
@@ -1678,10 +1687,11 @@ static bool fix_overlapping_extents(struct btree *b,
 			    KEY_OFFSET(k) > KEY_OFFSET(&op->replace))
 				goto check_failed;
 
+            //并非完全包含的情况
 			/* We didn't find a key that we were supposed to */
 			if (KEY_START(k) > KEY_START(insert) + sectors_found)
 				goto check_failed;
-
+            //PTR的数量必须相等
 			if (KEY_PTRS(&op->replace) != KEY_PTRS(k))
 				goto check_failed;
 
@@ -1827,7 +1837,7 @@ static bool btree_insert_key(struct btree *b, struct btree_op *op,
 			goto copy;
 	} else
 		m = bch_bset_search(b, &b->sets[b->nsets], k);
-
+        //在set中插入数据，然后WB中写回
 insert:	shift_keys(b, m, k);
 copy:	bkey_copy(m, k);
 merged:
@@ -2068,6 +2078,7 @@ static int bch_btree_insert_recurse(struct btree *b, struct btree_op *op,
 			if (!b->level)
 				bch_btree_leaf_dirty(b, op);
 			else
+				//非leaf节点就直接写了
 				bch_btree_node_write(b, &op->cl);
 		}
 	}

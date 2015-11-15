@@ -145,6 +145,7 @@ struct journal {
 	/* Number of blocks free in the bucket(s) we're currently writing to */
 	unsigned		blocks_free;
 	uint64_t		seq;
+	pin;
 	DECLARE_FIFO(atomic_t, pin);
 
     //指向当前写journal entry的地方

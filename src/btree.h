@@ -14,7 +14,8 @@
  * of the child node - this would allow us to have variable sized btree nodes
  * (handy for keeping the depth of the btree 1 by expanding just the root).
  *
- * Btree nodes are themselves log structured, but this is hidden fairly
+ //Èç¹ûÄÜÈ·±£ÄÚ´æÖĞÃ»ÓĞoverlap,ÄÇÃ´Ë¢µ½´ÅÅÌ¿Ï¶¨Ò²Ã»ÓĞ? 
+ * Btree nodes are themselves log structured(²ÉÓÃµÄÊÇÀàËÆlogµÄË³ĞòĞ´ĞÎÊ½), but this is hidden fairly
  * thoroughly. Btree nodes on disk will in practice have extents that overlap
  * (because they were written at different times), but in memory we never have
  * overlapping extents - when we read in a btree node from disk, the first thing
@@ -35,12 +36,14 @@
  * btree() macro is used to get a btree node, call some function on it, and
  * unlock the node after the function returns.
  *
+ //btree rootµÄ·ÃÎÊÓÉÆänode±£»¤£¬Òò¶øÕâÀï¼ÓËøĞèÒªÒ»µã¼¼ÇÉ
  * The root is special cased - it's taken out of the cache's lru (thus pinning
  * it in memory), so we can find the root of the btree by just dereferencing a
  * pointer instead of looking it up in the cache. This makes locking a bit
  * tricky, since the root pointer is protected by the lock in the btree node it
  * points to - the btree_root() macro handles this.
  *
+ //Õâ¶ÎÃ»¿´Ã÷°×£¬ÔõÃ´»¹ÄÜÈ¥ÆäËûnode reuseÄØ ÕâÊÇÒª»ØÊÕÆäËûnodeÂğ
  * In various places we must be able to allocate memory for multiple btree nodes
  * in order to make forward progress. To do this we use the btree cache itself
  * as a reserve; if __get_free_pages() fails, we'll find a node in the btree
@@ -53,6 +56,7 @@
  * Btree nodes never have to be explicitly read in; bch_btree_node_get() handles
  * this.
  *
+ //ÎªÊ²Ã´×ö³ÉÕâÑùå
  * For writing, we have two btree_write structs embeddded in struct btree - one
  * write in flight, and one being set up, and we toggle between them.
  *
@@ -68,7 +72,7 @@
  * to it, so a closure_sync() later can be used to wait for the write to
  * complete.
  *
- * This is handy because btree_split() and garbage collection can issue writes
+ * This is handy(·½±ã ±ãÀû) because btree_split() and garbage collection can issue writes
  * in parallel, reducing the amount of time they have to hold write locks.
  *
  * LOCKING:
@@ -81,11 +85,13 @@
  * take write locks at level <= 0, i.e. only leaf nodes. bch_btree_node_get()
  * checks this field and returns the node with the appropriate lock held.
  *
+ //splitµÄÊ±ºò¼ÓËøµÄ´¦Àí
  * If, after traversing the btree, the insertion code discovers it has to split
  * then it must restart from the root and take new locks - to do this it changes
  * the lock field and returns -EINTR, which causes the btree_root() macro to
  * loop.
  *
+ //cache missµÄÊ±ºòĞèÒªwrite lock£¬ÈçºÎ´¦ÀíµÄ
  * Handling cache misses require a different mechanism for upgrading to a write
  * lock. We do cache lookups with only a read lock held, but if we get a cache
  * miss and we wish to insert this data into the cache, we have to insert a
@@ -93,6 +99,7 @@
  * overwrite the data that was just written to the cache with stale data from
  * the backing device.
  *
+ //upgradeµÄÊµÏÖ·½·¨
  * For this we use a sequence number that write locks and unlocks increment - to
  * insert the check key it unlocks the btree node and then takes a write lock,
  * and fails if the sequence number doesn't match.

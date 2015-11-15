@@ -1586,7 +1586,7 @@ static void run_cache_set(struct cache_set *c)
         //初始化journal
 		for_each_cache(ca, c, i) {
 			unsigned j;
-
+            //journal bucket数量
 			ca->sb.keys = clamp_t(int, ca->sb.nbuckets >> 7,
 					      2, SB_JOURNAL_BUCKETS);
 
