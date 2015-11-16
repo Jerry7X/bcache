@@ -396,6 +396,7 @@ static void read_dirty(struct closure *cl)
 
 		BUG_ON(ptr_stale(dc->disk.c, &w->key, 0));
 
+		//不连续则delay
 		if (delay > 0 &&
 		    (KEY_START(&w->key) != dc->last_read ||
 		     jiffies_to_msecs(delay) > 50)) {

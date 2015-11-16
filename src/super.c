@@ -1518,6 +1518,7 @@ static void run_cache_set(struct cache_set *c)
 		err = "IO error reading priorities";
 		//初始化加载bucket的priority
 		//priority bucket之间有单向链表关系，因而可以找到所有的prio bucket
+		//read并且初始化bucket的priority
 		for_each_cache(ca, c, i)
 			prio_read(ca, j->prio_bucket[ca->sb.nr_this_dev]);
 

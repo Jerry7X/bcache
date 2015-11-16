@@ -765,8 +765,9 @@ void bch_journal(struct closure *cl)
 	w->data->keys += n;
 
     //init初始化为1，这里inc。完成journal写盘dec
-    //在完成btree磁盘的插入之后就释放了该pin
 	op->journal = &fifo_back(&c->journal.pin);
+	//在完成btree内存的插入之后就释放了该pin
+	//然后由btree_write结构记录journal位置，在flush到ssd之后释放，相当于checkpoint
 	atomic_inc(op->journal);
 
 	if (op->flush_journal) {

@@ -110,6 +110,8 @@ static void write_moving(struct closure *cl)
 		bkey_copy(&s->op.replace, &io->w->key);
 
 		closure_init(&s->op.cl, cl);
+		//把数据拷贝出来重新插入
+		//使用btree replace
 		bch_insert_data(&s->op.cl);
 	}
 
@@ -193,6 +195,7 @@ static unsigned bucket_heap_top(struct cache *ca)
 	return GC_SECTORS_USED(heap_peek(&ca->heap));
 }
 
+//moving gc就是挤掉空洞，把数据量少的bucket的数据fetch出来，重新插入
 void bch_moving_gc(struct closure *cl)
 {
 	struct cache_set *c = container_of(cl, struct cache_set, gc.cl);

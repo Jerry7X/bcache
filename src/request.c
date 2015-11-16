@@ -989,13 +989,14 @@ static void request_write(struct cached_dev *dc, struct search *s)
 	struct bkey start, end;
 	start = KEY(dc->disk.id, bio->bi_sector, 0);
 	end = KEY(dc->disk.id, bio_end_sector(bio), 0);
-    //与gc keys是否overlay
+    //与gc keys是否overlap
+    //如果有，则将其从gc keys中删除
 	bch_keybuf_check_overlapping(&s->op.c->moving_gc_keys, &start, &end);
 
 	check_should_skip(dc, s);
 	down_read_non_owner(&dc->writeback_lock);
 
-    //与wb keys是否overlay
+    //与wb keys是否overlap
 	if (bch_keybuf_check_overlapping(&dc->writeback_keys, &start, &end)) {
 		s->op.skip	= false;
 		s->writeback	= true;

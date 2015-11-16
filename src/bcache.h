@@ -402,6 +402,7 @@ struct keybuf;
 
 struct keybuf_key {
 	struct rb_node		node;
+	key;
 	BKEY_PADDED(key);
 	void			*private;
 };

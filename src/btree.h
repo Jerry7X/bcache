@@ -56,7 +56,7 @@
  * Btree nodes never have to be explicitly read in; bch_btree_node_get() handles
  * this.
  *
- //ÎªÊ²Ã´×ö³ÉÕâÑùå
+ //ÎªÊ²Ã´×ö³ÉÕâÑùå ÎªÁË¼ÇÂ¼journalµÄµã£¬Ïàµ±ÓÚcheckpointµã
  * For writing, we have two btree_write structs embeddded in struct btree - one
  * write in flight, and one being set up, and we toggle between them.
  *

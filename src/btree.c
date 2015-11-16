@@ -394,6 +394,8 @@ void bch_btree_node_write(struct btree *b, struct closure *parent)
 	closure_lock(&b->io, parent ?: &b->c->cl);
 
 	clear_bit(BTREE_NODE_dirty,	 &b->flags);
+	//这里change_bit,这样btree还照样向里面insert
+	//使用新的btree_write记录journal的点
 	change_bit(BTREE_NODE_write_idx, &b->flags);
 
 	do_btree_node_write(b);
@@ -437,13 +439,16 @@ static void bch_btree_leaf_dirty(struct btree *b, struct btree_op *op)
 	if (op && op->journal) {
 		if (w->journal &&
 		    journal_pin_cmp(b->c, w, op)) {
-		    //这还没写回，就回收?
-		    //w->journal到这里，说明这里已经刷到盘了
+		    //存在回绕的情况，如果op比w小，可能是回绕了
+		    //w->journal在这里要设置成最旧(_oldest_ 在journal.h的注释中有说明)的尚未落盘的journal
+		    //这样在flush的时候就可以将其标记清除(dec),也就释放了所有
+		    //在本次flush刷到磁盘的journal
 			atomic_dec_bug(w->journal);
 			w->journal = NULL;
 		}
 
 		if (!w->journal) {
+			//这里标记一个点，表明这个journal尚未刷盘，无法回收
 			w->journal = op->journal;
 			atomic_inc(w->journal);
 		}
@@ -1337,6 +1342,7 @@ static int btree_gc_recurse(struct btree *b, struct btree_op *op,
 		if (r->b->level)
 			ret = btree_gc_recurse(r->b, op, writes, gc);
 
+		//中间层次的写回
 		if (ret) {
 			write(r->b);
 			break;
@@ -2330,7 +2336,7 @@ static int bch_btree_refill_keybuf(struct btree *b, struct btree_op *op,
 				w->private = NULL;
 				bkey_copy(&w->key, k);
 
-				//插入到key buf中
+				//将满足条件moving_pred条件(key对应bucket的利用率)的key插入到key buf中
 				if (RB_INSERT(&buf->keys, w, node, keybuf_cmp))
 					array_free(&buf->freelist, w);
 
