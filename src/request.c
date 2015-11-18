@@ -1001,7 +1001,7 @@ static void request_write(struct cached_dev *dc, struct search *s)
 		s->op.skip	= false;
 		s->writeback	= true;
 	}
-    //最终是否overy还得看btree
+    //最终是否overlap还得看btree
 	if (bio->bi_rw & REQ_DISCARD)
 		goto skip;
 

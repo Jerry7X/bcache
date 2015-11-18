@@ -218,7 +218,7 @@ void bch_moving_gc(struct closure *cl)
 		for_each_bucket(b, ca) {
 			if (!GC_SECTORS_USED(b))
 				continue;
-
+            //heap中就是一个使用率从少到多的排序
 			if (!heap_full(&ca->heap)) {
 				sectors_to_move += GC_SECTORS_USED(b);
 				heap_add(&ca->heap, b, bucket_cmp);
